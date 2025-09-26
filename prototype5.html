@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Words of Wisdom & AI To-Do</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* Applying the Inter font to the whole page */
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Custom animation for quotes/tasks fading in */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Custom scrollbar for task columns */
+        .task-column::-webkit-scrollbar {
+            width: 6px;
+        }
+        .task-column::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .task-column::-webkit-scrollbar-thumb {
+            background-color: #a0aec0;
+            border-radius: 20px;
+            border: 3px solid transparent;
+        }
+        .dark .task-column::-webkit-scrollbar-thumb {
+            background-color: #4a5568;
+        }
+
+        /* Loading spinner animation */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: #fff;
+            animation: spin 1s linear infinite;
+        }
+        .dark .spinner {
+            border-left-color: #fb923c; /* orange-400 */
+        }
+
+        /* Styles for active nav links */
+        .nav-link-active {
+            color: #ea580c; /* orange-600 */
+        }
+        .dark .nav-link-active {
+            color: #fb923c; /* orange-400 */
+        }
+        
+        /* Pomodoro Timer Styles */
+        .timer-ring-bg {
+            stroke: #e2e8f0;
+        }
+        .dark .timer-ring-bg {
+            stroke: #374151;
+        }
+        .timer-ring-fg {
+            stroke: #f97316; /* orange-500 */
+            transition: stroke-dashoffset 1s linear;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+        /* Styles for active category tab */
+        .category-tab-active {
+            background-color: #f97316; /* orange-500 */
+            color: white;
+        }
+
+        /* Styles for the Calendar */
+        .calendar-day {
+            position: relative;
+            aspect-ratio: 1/1; /* Makes the day cells square */
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .dark .calendar-day:hover {
+             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .calendar-day.today {
+            border-color: #f97316; /* orange-500 */
+            background-color: #fff7ed; /* orange-50 */
+        }
+        .dark .calendar-day.today {
+            border-color: #fb923c; /* orange-400 */
+            background-color: #7c2d12; /* orange-900 */
+        }
+        .calendar-day.other-month {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .task-indicator {
+            position: absolute;
+            bottom: 8px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #ea580c; /* orange-600 */
+        }
+        .dark .task-indicator {
+             background-color: #fb923c; /* orange-400 */
+        }
+        
+        /* Animation for view switching in To-Do */
+        #calendar-view.view-exit {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        #day-view.view-enter {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+    </style>
+    <script>
+        // Set theme on initial load
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+
+<body class="antialiased bg-[#FDFCFB] dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <header class="container mx-auto px-6 py-5 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-[#FDFCFB]/80 dark:bg-gray-900/80 backdrop-blur-sm z-50">
+        <div class="font-extrabold text-2xl tracking-tighter">
+            <a href="#" id="logo-link" class="flex items-center">
+                <span class="bg-black text-white rounded-md px-2 py-1 mr-2">W</span>
+                <span class="dark:text-white">Wisdom</span>
+            </a>
+        </div>
+        <nav class="hidden md:flex items-center space-x-6">
+            <a href="#" id="home-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300">Home</a>
+            <a href="#" id="library-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300">Library</a>
+            <a href="#" id="pomodoro-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300">Pomodoro Focus</a>
+            <a href="#" id="games-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300">Games</a>
+            <a href="#" id="todo-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300">Your To-Do List</a>
+            <a href="#" id="account-nav-link" class="nav-link text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition-colors duration-300 hidden">Account</a>
+        </nav>
+        <div class="flex items-center space-x-4">
+             <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <svg id="theme-toggle-dark-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zM3 11a1 1 0 100-2H2a1 1 0 100 2h1zM6.465 14.95l-.708.707a1 1 0 001.414 1.414l.707-.707a1 1 0 00-1.414-1.414zM14.95 6.464a1 1 0 00-1.414-1.414l-.707.707a1 1 0 101.414 1.414l.707-.707z"></path></svg>
+            </button>
+            <div id="auth-container">
+                <a href="#" id="login-nav-link" class="bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 shadow-sm">Login / Sign Up</a>
+                <button id="logout-btn" class="hidden bg-red-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all duration-300 shadow-sm">Logout</button>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+    </header>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden container mx-auto px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <a href="#" class="block py-2 nav-link">Home</a>
+        <a href="#" class="block py-2 nav-link">Library</a>
+        <a href="#" class="block py-2 nav-link">Pomodoro Focus</a>
+        <a href="#" class="block py-2 nav-link">Games</a>
+        <a href="#" class="block py-2 nav-link">Your To-Do List</a>
+        <a href="#" class="block py-2 nav-link hidden">Account</a>
+    </div>
+
+
+    <div id="app-container">
+        <!-- Main Quotes Page -->
+        <main id="quotes-page" class="page container mx-auto px-6 py-16 md:py-24">
+            <div class="text-center mb-20">
+                <h1 class="text-4xl md:text-6xl font-extrabold leading-tight tracking-tighter">Find Your Inspiration</h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-4 max-w-2xl mx-auto text-lg">A curated collection of powerful quotes to inspire, motivate, and guide you.</p>
+            </div>
+            <div id="quotes-container" class="space-y-16"></div>
+        </main>
+        
+        <!-- Pomodoro Page -->
+        <main id="pomodoro-page" class="page hidden container mx-auto px-6 py-16 md:py-24">
+            <div class="max-w-xl mx-auto text-center">
+                 <h1 class="text-4xl md:text-5xl font-extrabold leading-tight tracking-tighter">Pomodoro Focus</h1>
+                 <p class="text-gray-500 dark:text-gray-400 mt-2">Use the Pomodoro Technique to break down work into manageable intervals.</p>
+            
+                <div class="my-8 p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    <!-- Timer Display -->
+                    <div class="relative w-64 h-64 mx-auto mb-6">
+                        <svg class="w-full h-full" viewBox="0 0 120 120">
+                            <circle class="timer-ring-bg" cx="60" cy="60" r="54" fill="none" stroke-width="12"></circle>
+                            <circle id="timer-ring-fg" class="timer-ring-fg" cx="60" cy="60" r="54" fill="none" stroke-width="12" stroke-linecap="round"></circle>
+                        </svg>
+                        <div id="timer-display" class="absolute inset-0 flex items-center justify-center text-5xl font-bold">
+                            25:00
+                        </div>
+                    </div>
+
+                    <!-- Mode Buttons -->
+                    <div id="pomodoro-modes" class="flex justify-center space-x-2 mb-6 transition-opacity duration-300">
+                        <button data-mode="pomodoro" class="mode-btn bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold">Pomodoro</button>
+                        <button data-mode="shortBreak" class="mode-btn bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-lg font-semibold">Short Break</button>
+                        <button data-mode="longBreak" class="mode-btn bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-lg font-semibold">Long Break</button>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex justify-center items-center space-x-4">
+                        <button id="timer-control-btn" class="bg-green-600 text-white px-10 py-4 rounded-lg font-bold text-xl uppercase tracking-wider hover:bg-green-700 transition-all">Start</button>
+                        <button id="timer-reset-btn" class="p-4 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16"></path></svg>
+                        </button>
+                    </div>
+
+                     <!-- Session Counter -->
+                    <div id="pomodoro-counter" class="mt-6 text-lg">
+                        Completed Pomodoros: <span id="pomodoro-count" class="font-bold">0</span>
+                    </div>
+                </div>
+                
+                <!-- Custom Focus Session -->
+                <div class="mt-16">
+                    <h2 class="text-3xl font-bold">Custom Focus Session</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1 mb-6">Set a total duration and we'll break it into manageable focus intervals with breaks, just like the Windows Clock.</p>
+                    <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <input type="number" id="custom-duration-input" min="10" value="60" class="w-full sm:w-48 px-4 py-3 text-center rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none transition" placeholder="Minutes">
+                            <button id="start-focus-session-btn" class="w-full sm:w-auto bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all">Start Focus Session</button>
+                        </div>
+                        <div id="session-plan-container" class="mt-6 text-left hidden">
+                             <h4 class="font-bold mb-2">Your Session Plan:</h4>
+                             <div id="session-plan" class="text-sm text-gray-600 dark:text-gray-400 space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Non-Pomodoro Timer -->
+                <div class="mt-16">
+                    <h2 class="text-3xl font-bold">Casual Timer</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1 mb-6">A simple stopwatch for untimed work sessions.</p>
+                     <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                        <div id="stopwatch-display" class="text-5xl font-bold mb-6">00:00:00</div>
+                        <div class="flex justify-center space-x-4">
+                            <button id="stopwatch-start-btn" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all">Start</button>
+                             <button id="stopwatch-stop-btn" class="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition-all hidden">Stop</button>
+                            <button id="stopwatch-reset-btn" class="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all">Reset</button>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- To-Do List Page -->
+        <main id="todo-page" class="page hidden container mx-auto px-6 py-16 md:py-24 overflow-hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-extrabold leading-tight tracking-tighter">Your To-Do List</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Plan your life with a beautiful calendar.</p>
+                </div>
+                <div class="flex space-x-4 mt-4 md:mt-0 text-center">
+                    <div>
+                        <p id="tasks-remaining" class="text-3xl font-bold text-orange-500 dark:text-orange-400">0</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Remaining</p>
+                    </div>
+                    <div>
+                        <p id="tasks-completed" class="text-3xl font-bold text-green-500">0</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- View Container for animation -->
+            <div id="todo-view-container" class="relative">
+
+                <!-- Calendar View -->
+                <div id="calendar-view" class="transition-all duration-500 ease-in-out">
+                     <div class="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                        <!-- Calendar Header -->
+                        <div id="calendar-header" class="flex justify-between items-center mb-4">
+                            <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <h2 id="month-year-header" class="text-2xl font-bold text-center w-48"></h2>
+                            <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                        <!-- Day Names -->
+                        <div id="calendar-days-header" class="grid grid-cols-7 gap-2 text-center font-semibold text-gray-500 dark:text-gray-400 text-sm mb-2">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <!-- Calendar Grid -->
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                            <!-- Dates will be generated here by JS -->
+                        </div>
+                     </div>
+                </div>
+        
+                <!-- Single Day View -->
+                <div id="day-view" class="absolute top-0 left-0 w-full transition-all duration-500 ease-in-out transform translate-x-full opacity-0">
+                     <div class="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                        <!-- Day View Header -->
+                        <div class="flex items-center mb-6">
+                            <button id="back-to-calendar-btn" class="text-orange-500 dark:text-orange-400 hover:underline mr-4 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                                Back
+                            </button>
+                            <h2 id="day-view-header" class="text-3xl font-bold"></h2>
+                        </div>
+                         <!-- Add Task Form -->
+                        <form id="add-task-form-day" class="mb-8 flex flex-col sm:flex-row gap-4 items-center">
+                            <input type="text" id="task-input-day" placeholder="Enter task for this day..." class="flex-grow w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none transition" required>
+                            <input type="date" id="deadline-input-day" class="hidden"> <!-- Hidden: value set by JS -->
+                            <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all">Add Task</button>
+                            <button type="button" id="gemini-breakdown-btn-day" class="w-full sm:w-auto bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
+                                <span id="gemini-btn-text-day">✨ Break Down</span>
+                                <div id="gemini-loader-day" class="spinner hidden"></div>
+                            </button>
+                        </form>
+                        <!-- Task List for the Day -->
+                        <div id="day-tasks-container" class="space-y-3 overflow-y-auto pr-1 task-column" style="max-height: 400px;">
+                            <!-- Tasks for the selected day will appear here -->
+                        </div>
+                     </div>
+                </div>
+
+            </div>
+        </main>
+
+
+        <!-- Quote Library Page -->
+        <main id="library-page" class="page hidden container mx-auto px-6 py-16 md:py-24">
+            <div id="author-list-view">
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl md:text-6xl font-extrabold leading-tight tracking-tighter">Quote Library</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-4 max-w-2xl mx-auto text-lg">Browse quotes by your favorite thinkers and innovators.</p>
+                </div>
+
+                <!-- Quote of the Day Section -->
+                <div id="qotd-container" class="mb-16"></div>
+
+                <!-- Category Tabs -->
+                <div id="category-tabs" class="flex flex-wrap justify-center gap-2 mb-12">
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="All">All</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Tech & Entrepreneurs">Tech & Entrepreneurs</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Scientists & Thinkers">Scientists & Thinkers</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Ancient & Middle Ages">Ancient & Middle Ages</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Writers">Writers</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Leaders & Activists">Leaders & Activists</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Artists & Creators">Artists & Creators</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Sports">Sports</button>
+                     <button class="category-tab px-4 py-2 rounded-lg font-semibold transition-colors duration-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-category="Entertainment">Entertainment</button>
+                </div>
+
+                <div class="mb-12 max-w-lg mx-auto">
+                    <input type="search" id="author-search" placeholder="Search for an author..." class="w-full px-5 py-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition shadow-sm">
+                </div>
+                <div id="author-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                </div>
+            </div>
+            <div id="author-quotes-view" class="hidden">
+            </div>
+        </main>
+
+        <!-- Games Page -->
+        <main id="games-page" class="page hidden container mx-auto px-6 py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-extrabold">Games — Take a Short Break</h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-2">Three short games: Minesweeper, Tetris, Brick Breaker. Difficulty + best-score saved locally.</p>
+            </div>
+            <div id="game-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow cursor-pointer" data-game="minesweeper"><h3 class="text-xl font-bold">Minesweeper</h3><p class="text-sm text-gray-500 mt-2">Classic puzzle — clear the board without hitting mines.</p></div>
+                <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow cursor-pointer" data-game="tetris"><h3 class="text-xl font-bold">Tetris</h3><p class="text-sm text-gray-500 mt-2">Stack falling blocks — clear lines to score.</p></div>
+                <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow cursor-pointer" data-game="brickbreaker"><h3 class="text-xl font-bold">Brick Breaker</h3><p class="text-sm text-gray-500 mt-2">Bounce the ball, break bricks — fast and relaxing.</p></div>
+            </div>
+            <div id="game-area" class="mt-8"></div>
+        </main>
+
+        <!-- Login/Signup Page -->
+        <main id="login-page" class="page hidden container mx-auto px-6 py-16 md:py-24">
+            <div class="max-w-md mx-auto bg-white dark:bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <h2 id="auth-title" class="text-3xl font-bold text-center mb-6">Login</h2>
+                <div id="auth-error" class="text-red-500 text-center mb-4 hidden"></div>
+                <form id="auth-form">
+                    <div id="name-fields" class="hidden">
+                        <div class="mb-4">
+                            <label for="nickname" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nickname</label>
+                            <input type="text" id="nickname" class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none">
+                        </div>
+                        <div class="mb-4">
+                            <label for="fullname" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                            <input type="text" id="fullname" class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                        <input type="email" id="email" required class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none">
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                        <input type="password" id="password" required class="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-orange-500 outline-none">
+                    </div>
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-all">Login</button>
+                </form>
+                <div class="text-center my-4 text-gray-500 dark:text-gray-400">or</div>
+                <button id="google-signin-btn" class="w-full bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 py-3 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-all flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.13 0 5.9 1.08 7.95 2.92l6.04-6.04C34.3 2.66 29.56 0 24 0 14.52 0 6.66 5.54 2.86 13.39l7.4 5.78C11.93 13.43 17.49 9.5 24 9.5z"></path><path fill="#34A853" d="M46.14 24.5c0-1.66-.15-3.28-.43-4.84H24v9.15h12.43c-.54 2.97-2.1 5.49-4.64 7.22l7.12 5.55c4.16-3.84 6.58-9.44 6.58-16.12z"></path><path fill="#FBBC05" d="M10.26 28.58C9.55 26.54 9.14 24.33 9.14 22c0-2.33.41-4.54 1.12-6.58l-7.4-5.78C1.07 14.74 0 18.27 0 22s1.07 7.26 2.86 12.22l7.4-5.64z"></path><path fill="#EA4335" d="M24 44c5.56 0 10.3-1.84 13.72-4.96l-7.12-5.55c-1.84 1.24-4.2 2-6.6 2-6.51 0-12.07-3.93-13.74-9.61l-7.4 5.78C6.66 38.46 14.52 44 24 44z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                    Sign in with Google
+                </button>
+                <p class="text-center mt-6 text-sm">
+                    <a href="#" id="auth-toggle-link" class="text-green-600 hover:underline">Don't have an account? Sign Up</a>
+                </p>
+            </div>
+        </main>
+        
+        <!-- Account Page -->
+        <main id="account-page" class="page hidden container mx-auto px-6 py-16 md:py-24">
+             <div class="max-w-2xl mx-auto">
+                <h1 class="text-4xl md:text-5xl font-extrabold leading-tight tracking-tighter mb-12">Your Account</h1>
+                <div class="bg-white dark:bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-8">
+                    <div>
+                        <img id="profile-pic" src="https://placehold.co/128x128/E2E8F0/4A5568?text=...&font=inter" class="w-32 h-32 rounded-full object-cover bg-gray-200 dark:bg-gray-700">
+                        <input type="file" id="photo-upload" class="hidden" accept="image/*">
+                        <button id="change-photo-btn" class="w-full mt-2 text-sm text-center text-green-600 hover:underline">Change Photo</button>
+                    </div>
+                    <div class="flex-grow">
+                        <h2 id="profile-nickname" class="text-3xl font-bold"></h2>
+                        <p id="profile-fullname" class="text-gray-500 dark:text-gray-400 mt-1"></p>
+                        <p id="profile-email" class="text-gray-500 dark:text-gray-400 mt-4"></p>
+                    </div>
+                </div>
+                <div class="mt-12">
+                     <h2 class="text-2xl font-bold mb-4">Your Bookmarked Quotes</h2>
+                     <div id="bookmarked-quotes-container" class="space-y-4">
+                         <p class="text-gray-500">You haven't bookmarked any quotes yet.</p>
+                     </div>
+                </div>
+             </div>
+        </main>
+
+    </div>
+
+    <footer class="bg-gray-100 dark:bg-gray-900/50 mt-24">
+        <div class="container mx-auto px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+            <p>&copy; 2025 Words of Wisdom. All Rights Reserved.</p>
+            <p class="text-sm mt-2">Designed with inspiration.</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            signInAnonymously, 
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signOut,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            setDoc,
+            getDoc,
+            getDocs,
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot,
+            runTransaction,
+            query,
+            where,
+            writeBatch
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import {
+            getStorage,
+            ref,
+            uploadBytes,
+            getDownloadURL
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENT REFERENCES ---
+            const pages = document.querySelectorAll('.page');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+            const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+            // --- FIREBASE SETUP ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyB8DDJzmxPz-VSHWl_g4M6gxSL4S0WiWTk",
+                authDomain: "motivation-29adc.firebaseapp.com",
+                databaseURL: "https://motivation-29adc-default-rtdb.firebaseio.com",
+                projectId: "motivation-29adc",
+                storageBucket: "motivation-29adc.firebasestorage.app",
+                messagingSenderId: "47000639510",
+                appId: "1:47000639510:web:b319d1cecf9d0a50d47d37"
+            };
+            
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            const storage = getStorage(app);
+            const googleProvider = new GoogleAuthProvider();
+
+            let tasksCollection;
+            let unsubscribeTasks;
+            let currentUser = null;
+
+            // --- QUOTES DATA with CATEGORIES ---
+            const quotes = [
+                // Tech & Entrepreneurs
+                { id: "sjobs1", author: "Steve Jobs", quote: "The only way to do great work is to love what you do.", category: "Tech & Entrepreneurs" },
+                { id: "sjobs2", author: "Steve Jobs", quote: "Innovation distinguishes between a leader and a follower.", category: "Tech & Entrepreneurs" },
+                { id: "sjobs3", author: "Steve Jobs", quote: "Your time is limited, so don’t waste it living someone else’s life.", category: "Tech & Entrepreneurs" },
+                { id: "musk1", author: "Elon Musk", quote: "When something is important enough, you do it even if the odds are not in your favor.", category: "Tech & Entrepreneurs" },
+                { id: "musk2", author: "Elon Musk", quote: "Persistence is very important. You should not give up unless you are forced to give up.", category: "Tech & Entrepreneurs" },
+                { id: "bezos1", author: "Jeff Bezos", quote: "We are stubborn on vision. We are flexible on details.", category: "Tech & Entrepreneurs" },
+                { id: "bezos2", author: "Jeff Bezos", quote: "Your brand is what other people say about you when you're not in the room.", category: "Tech & Entrepreneurs" },
+                { id: "gates1", author: "Bill Gates", quote: "It's fine to celebrate success, but it is more important to heed the lessons of failure.", category: "Tech & Entrepreneurs" },
+                { id: "gates2", author: "Bill Gates", quote: "Your most unhappy customers are your greatest source of learning.", category: "Tech & Entrepreneurs" },
+                { id: "huang1", author: "Jensen Huang", quote: "Software is eating the world, but AI is going to eat software.", category: "Tech & Entrepreneurs" },
+                { id: "naval1", author: "Naval Ravikant", quote: "A fit body, a calm mind, a house full of love. These things cannot be bought - they must be earned.", category: "Tech & Entrepreneurs" },
+                { id: "naval2", author: "Naval Ravikant", quote: "Desire is a contract you make with yourself to be unhappy until you get what you want.", category: "Tech & Entrepreneurs" },
+                { id: "buffett1", author: "Warren Buffett", quote: "The most important investment you can make is in yourself.", category: "Tech & Entrepreneurs" },
+                { id: "buffett2", author: "Warren Buffett", quote: "Price is what you pay. Value is what you get.", category: "Tech & Entrepreneurs" },
+                { id: "nadella1", author: "Satya Nadella", quote: "The learn-it-all will always do better than the know-it-all.", category: "Tech & Entrepreneurs" },
+                { id: "pichai1", author: "Sundar Pichai", quote: "Wear your failure as a badge of honor.", category: "Tech & Entrepreneurs" },
+                { id: "zuck1", author: "Mark Zuckerberg", quote: "The biggest risk is not taking any risk... In a world that's changing really quickly, the only strategy that is guaranteed to fail is not taking risks.", category: "Tech & Entrepreneurs" },
+                { id: "altman1", author: "Sam Altman", quote: "Great execution is at least 10 times more important and 100 times harder than a good idea.", category: "Tech & Entrepreneurs" },
+                { id: "hoffman1", author: "Reid Hoffman", quote: "An entrepreneur is someone who jumps off a cliff and builds a plane on the way down.", category: "Tech & Entrepreneurs" },
+                { id: "thiel1", author: "Peter Thiel", quote: "Competition is for losers.", category: "Tech & Entrepreneurs" },
+                { id: "graham1", author: "Paul Graham", quote: "Live in the future, then build what's missing.", category: "Tech & Entrepreneurs" },
+                { id: "page1", author: "Larry Page", quote: "If you're changing the world, you're working on important things. You're excited to get up in the morning.", category: "Tech & Entrepreneurs" },
+                { id: "brin1", author: "Sergey Brin", quote: "Solving big problems is easier than solving small problems.", category: "Tech & Entrepreneurs" },
+                { id: "ma1", author: "Jack Ma", quote: "Today is cruel. Tomorrow is crueler. And the day after tomorrow is beautiful.", category: "Tech & Entrepreneurs" },
+                { id: "sandberg1", author: "Sheryl Sandberg", quote: "Done is better than perfect.", category: "Leaders & Activists" },
+                { id: "nooyi1", author: "Indra Nooyi", quote: "The distance between number one and number two is always a constant.", category: "Leaders & Activists" },
+                { id: "barra1", author: "Mary Barra", quote: "If you do what you love, you'll never work a day in your life.", category: "Leaders & Activists" },
+                { id: "clear1", author: "James Clear", quote: "You do not rise to the level of your goals. You fall to the level of your systems.", category: "Writers" },
+                { id: "sinek1", author: "Simon Sinek", quote: "People don't buy what you do; they buy why you do it.", category: "Writers" },
+                { id: "godin1", author: "Seth Godin", quote: "The only thing worse than starting something and failing... is not starting something.", category: "Writers" },
+
+                // Scientists & Thinkers
+                { id: "einstein1", author: "Albert Einstein", quote: "Imagination is more important than knowledge.", category: "Scientists & Thinkers" },
+                { id: "einstein2", author: "Albert Einstein", quote: "Strive not to be a success, but rather to be of value.", category: "Scientists & Thinkers" },
+                { id: "curie1", author: "Marie Curie", quote: "Nothing in life is to be feared, it is only to be understood. Now is the time to understand more, so that we may fear less.", category: "Scientists & Thinkers" },
+                { id: "sagan1", author: "Carl Sagan", quote: "Somewhere, something incredible is waiting to be known.", category: "Scientists & Thinkers" },
+                { id: "feynman1", author: "Richard Feynman", quote: "The first principle is that you must not fool yourself and you are the easiest person to fool.", category: "Scientists & Thinkers" },
+                { id: "newton1", author: "Isaac Newton", quote: "If I have seen further it is by standing on the shoulders of Giants.", category: "Scientists & Thinkers" },
+                { id: "galilei1", author: "Galileo Galilei", quote: "You cannot teach a man anything; you can only help him find it within himself.", category: "Scientists & Thinkers" },
+                { id: "tesla1", author: "Nikola Tesla", quote: "The present is theirs; the future, for which I really worked, is mine.", category: "Scientists & Thinkers" },
+                { id: "turing1", author: "Alan Turing", quote: "We can only see a short distance ahead, but we can see plenty there that needs to be done.", category: "Scientists & Thinkers" },
+                { id: "hopper1", author: "Grace Hopper", quote: "The most dangerous phrase in the language is, 'We've always done it this way.'", category: "Scientists & Thinkers" },
+                { id: "hawking1", author: "Stephen Hawking", quote: "Look up at the stars and not down at your feet. Be curious.", category: "Scientists & Thinkers" },
+                { id: "tyson1", author: "Neil deGrasse Tyson", quote: "The good thing about science is that it's true whether or not you believe in it.", category: "Scientists & Thinkers" },
+                { id: "jung1", author: "Carl Jung", quote: "Who looks outside, dreams; who looks inside, awakes.", category: "Scientists & Thinkers" },
+                { id: "peterson1", author: "Jordan Peterson", quote: "Compare yourself to who you were yesterday, not to who someone else is today.", category: "Scientists & Thinkers" },
+                { id: "brown1", author: "Brené Brown", quote: "Vulnerability is not winning or losing; it's having the courage to show up and be seen when we have no control over the outcome.", category: "Scientists & Thinkers" },
+                { id: "duckworth1", author: "Angela Duckworth", quote: "Grit is passion and perseverance for very long-term goals.", category: "Scientists & Thinkers" },
+                { id: "kahneman1", author: "Daniel Kahneman", quote: "We're blind to our blindness. We have very little idea of how little we know. We're not designed to know how little we know.", category: "Scientists & Thinkers" },
+                { id: "chomsky1", author: "Noam Chomsky", quote: "If we don't believe in freedom of expression for people we despise, we don't believe in it at all.", category: "Scientists & Thinkers" },
+                { id: "dawkins1", author: "Richard Dawkins", quote: "The universe we observe has precisely the properties we should expect if there is, at bottom, no design, no purpose, no evil, no good, nothing but blind, pitiless indifference.", category: "Scientists & Thinkers" },
+                { id: "frankl1", author: "Viktor Frankl", quote: "Everything can be taken from a man but one thing: the last of the human freedoms—to choose one’s attitude in any given set of circumstances, to choose one’s own way.", category: "Scientists & Thinkers" },
+
+                // Ancient & Middle Ages
+                { id: "aristotle1", author: "Aristotle", quote: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", category: "Ancient & Middle Ages" },
+                { id: "plato1", author: "Plato", quote: "The beginning is the most important part of the work.", category: "Ancient & Middle Ages" },
+                { id: "socrates1", author: "Socrates", quote: "The only true wisdom is in knowing you know nothing.", category: "Ancient & Middle Ages" },
+                { id: "confucius1", author: "Confucius", quote: "It does not matter how slowly you go as long as you do not stop.", category: "Ancient & Middle Ages" },
+                { id: "laotzu1", author: "Lao Tzu", quote: "The journey of a thousand miles begins with a single step.", category: "Ancient & Middle Ages" },
+                { id: "suntzu1", author: "Sun Tzu", quote: "The supreme art of war is to subdue the enemy without fighting.", category: "Ancient & Middle Ages" },
+                { id: "seneca1", author: "Seneca", quote: "Luck is what happens when preparation meets opportunity.", category: "Ancient & Middle Ages" },
+                { id: "aurelius1", author: "Marcus Aurelius", quote: "You have power over your mind - not outside events. Realize this, and you will find strength.", category: "Ancient & Middle Ages" },
+                { id: "epictetus1", author: "Epictetus", quote: "We cannot choose our external circumstances, but we can always choose how we respond to them.", category: "Ancient & Middle Ages" },
+                { id: "machiavelli1", author: "Niccolò Machiavelli", quote: "It is better to be feared than loved, if you cannot be both.", category: "Ancient & Middle Ages" },
+                { id: "vinci1", author: "Leonardo da Vinci", quote: "Learning never exhausts the mind.", category: "Artists & Creators" },
+                { id: "michelangelo1", author: "Michelangelo", quote: "The greater the artist, the greater the doubt. Perfect confidence is granted to the less talented as a consolation prize.", category: "Artists & Creators" },
+                
+                // Writers
+                { id: "nietzsche1", author: "Friedrich Nietzsche", quote: "That which does not kill us makes us stronger.", category: "Writers" },
+                { id: "descartes1", author: "René Descartes", quote: "I think, therefore I am.", category: "Writers" },
+                { id: "twain1", author: "Mark Twain", quote: "The secret of getting ahead is getting started.", category: "Writers" },
+                { id: "orwell1", author: "George Orwell", quote: "In a time of deceit telling the truth is a revolutionary act.", category: "Writers" },
+                { id: "huxley1", author: "Aldous Huxley", quote: "Facts do not cease to exist because they are ignored.", category: "Writers" },
+                { id: "tolstoy1", author: "Leo Tolstoy", quote: "If you want to be happy, be.", category: "Writers" },
+                { id: "wilde1", author: "Oscar Wilde", quote: "Be yourself; everyone else is already taken.", category: "Writers" },
+                { id: "emerson1", author: "Ralph Waldo Emerson", quote: "To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.", category: "Writers" },
+                { id: "thoreau1", author: "Henry David Thoreau", quote: "Go confidently in the direction of your dreams! Live the life you've imagined.", category: "Writers" },
+                { id: "hemingway1", author: "Ernest Hemingway", quote: "The best way to find out if you can trust somebody is to trust them.", category: "Writers" },
+                { id: "fitzgerald1", author: "F. Scott Fitzgerald", quote: "The test of a first-rate intelligence is the ability to hold two opposed ideas in the mind at the same time, and still retain the ability to function.", category: "Writers" },
+                { id: "shaw1", author: "George Bernard Shaw", quote: "Life isn't about finding yourself. Life is about creating yourself.", category: "Writers" },
+                { id: "angelou1", author: "Maya Angelou", quote: "I've learned that people will forget what you said, people will forget what you did, but people will never forget how you made them feel.", category: "Writers" },
+                { id: "rowling1", author: "J.K. Rowling", quote: "It is our choices, Harry, that show what we truly are, far more than our abilities.", category: "Writers" },
+                { id: "camus1", author: "Albert Camus", quote: "In the midst of winter, I found there was, within me, an invincible summer.", category: "Writers" },
+                
+                // Leaders & Activists
+                { id: "mandela1", author: "Nelson Mandela", quote: "The greatest glory in living lies not in never falling, but in rising every time we fall.", category: "Leaders & Activists" },
+                { id: "mlk1", author: "Martin Luther King Jr.", quote: "The time is always right to do what is right.", category: "Leaders & Activists" },
+                { id: "gandhi1", author: "Mahatma Gandhi", quote: "Be the change that you wish to see in the world.", category: "Leaders & Activists" },
+                { id: "churchill1", author: "Winston Churchill", quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.", category: "Leaders & Activists" },
+                { id: "roosevelt1", author: "Theodore Roosevelt", quote: "Believe you can and you're halfway there.", category: "Leaders & Activists" },
+                { id: "lincoln1", author: "Abraham Lincoln", quote: "The best way to predict the future is to create it.", category: "Leaders & Activists" },
+                { id: "roosevelt2", author: "Franklin D. Roosevelt", quote: "The only thing we have to fear is fear itself.", category: "Leaders & Activists" },
+                { id: "kennedy1", author: "John F. Kennedy", quote: "Ask not what your country can do for you—ask what you can do for your country.", category: "Leaders & Activists" },
+                { id: "roosevelt3", author: "Eleanor Roosevelt", quote: "No one can make you feel inferior without your consent.", category: "Leaders & Activists" },
+                { id: "obama1", author: "Michelle Obama", quote: "There is no limit to what we, as women, can accomplish.", category: "Leaders & Activists" },
+                { id: "winfrey1", author: "Oprah Winfrey", quote: "The biggest adventure you can take is to live the life of your dreams.", category: "Leaders & Activists" },
+                { id: "malala1", author: "Malala Yousafzai", quote: "One child, one teacher, one book, one pen can change the world.", category: "Leaders & Activists" },
+                { id: "franklin1", author: "Benjamin Franklin", quote: "Either write something worth reading or do something worth writing.", category: "Leaders & Activists" },
+                { id: "washington1", author: "George Washington", quote: "It is better to offer no excuse than a bad one.", category: "Leaders & Activists" },
+                { id: "jefferson1", author: "Thomas Jefferson", quote: "I find that the harder I work, the more luck I seem to have.", category: "Leaders & Activists" },
+                { id: "thatcher1", author: "Margaret Thatcher", quote: "You may have to fight a battle more than once to win it.", category: "Leaders & Activists" },
+                { id: "gorbachev1", author: "Mikhail Gorbachev", quote: "If you are not moving forward, you are moving backward.", category: "Leaders & Activists" },
+                { id: "dalailama1", author: "Dalai Lama", quote: "Happiness is not something ready made. It comes from your own actions.", category: "Leaders & Activists" },
+                { id: "teresa1", author: "Mother Teresa", quote: "Not all of us can do great things. But we can do small things with great love.", category: "Leaders & Activists" },
+                
+                // Artists & Creators
+                { id: "vangogh1", author: "Vincent van Gogh", quote: "I dream my painting, and then I paint my dream.", category: "Artists & Creators" },
+                { id: "picasso1", author: "Pablo Picasso", quote: "Every child is an artist. The problem is how to remain an artist once he grows up.", category: "Artists & Creators" },
+                { id: "beethoven1", author: "Ludwig van Beethoven", quote: "To play a wrong note is insignificant; to play without passion is inexcusable.", category: "Artists & Creators" },
+                { id: "mozart1", author: "Wolfgang Amadeus Mozart", quote: "The music is not in the notes, but in the silence between.", category: "Artists & Creators" },
+                { id: "warhol1", author: "Andy Warhol", quote: "They always say time changes things, but you actually have to change them yourself.", category: "Artists & Creators" },
+                { id: "dali1", author: "Salvador Dalí", quote: "Have no fear of perfection - you'll never reach it.", category: "Artists & Creators" },
+                { id: "disney1", author: "Walt Disney", quote: "The way to get started is to quit talking and begin doing.", category: "Artists & Creators" },
+                { id: "spielberg1", author: "Steven Spielberg", quote: "The only time I'm not thinking about movies is when I'm making them.", category: "Entertainment" },
+                { id: "hitchcock1", author: "Alfred Hitchcock", quote: "There is no terror in the bang, only in the anticipation of it.", category: "Entertainment" },
+                { id: "kubrick1", author: "Stanley Kubrick", quote: "If it can be written, or thought, it can be filmed.", category: "Entertainment" },
+                { id: "tarantino1", author: "Quentin Tarantino", quote: "I don't believe in elitism. I don't think the audience is this dumb person lower than me. I am the audience.", category: "Entertainment" },
+                { id: "lee1", author: "Stan Lee", quote: "With great power comes great responsibility.", category: "Entertainment" },
+                { id: "miyamoto1", author: "Shigeru Miyamoto", quote: "A delayed game is eventually good, but a rushed game is forever bad.", category: "Entertainment" },
+                { id: "kojima1", author: "Hideo Kojima", quote: "I'm not a genius. I'm just a hard-working guy.", category: "Entertainment" },
+                { id: "miyazaki1", author: "Hayao Miyazaki", quote: "The creation of a single world comes from a huge number of fragments and chaos.", category: "Entertainment" },
+                { id: "lucas1", author: "George Lucas", quote: "You simply have to put one foot in front of the other and keep going. Put blinders on and plow right ahead.", category: "Entertainment" },
+                { id: "dylan1", author: "Bob Dylan", quote: "A hero is someone who understands the responsibility that comes with his freedom.", category: "Artists & Creators" },
+                { id: "bowie1", author: "David Bowie", quote: "I don't know where I'm going from here, but I promise it won't be boring.", category: "Artists & Creators" },
+
+                // Sports
+                { id: "jordan1", author: "Michael Jordan", quote: "I've missed more than 9000 shots in my career. I've lost almost 300 games. 26 times, I've been trusted to take the game winning shot and missed. I've failed over and over and over again in my life. And that is why I succeed.", category: "Sports" },
+                { id: "bryant1", author: "Kobe Bryant", quote: "The most important thing is to try and inspire people so that they can be great in whatever they want to do.", category: "Sports" },
+                { id: "james1", author: "LeBron James", quote: "I like criticism. It makes you strong.", category: "Sports" },
+                { id: "ali1", author: "Muhammad Ali", quote: "He who is not courageous enough to take risks will accomplish nothing in life.", category: "Sports" },
+                { id: "gretzky1", author: "Wayne Gretzky", quote: "You miss 100% of the shots you don't take.", category: "Sports" },
+                { id: "lombardi1", author: "Vince Lombardi", quote: "Perfection is not attainable, but if we chase perfection we can catch excellence.", category: "Sports" },
+                { id: "ruth1", author: "Babe Ruth", quote: "Never let the fear of striking out keep you from playing the game.", category: "Sports" },
+                { id: "robinson1", author: "Jackie Robinson", quote: "A life is not important except in the impact it has on other lives.", category: "Sports" },
+                { id: "phelps1", author: "Michael Phelps", quote: "You can't put a limit on anything. The more you dream, the farther you get.", category: "Sports" },
+                { id: "bolt1", author: "Usain Bolt", quote: "Worrying gets you nowhere. If you turn up worrying about how you're going to perform, you've already lost.", category: "Sports" },
+                { id: "biles1", author: "Simone Biles", quote: "I'm not the next Usain Bolt or Michael Phelps. I'm the first Simone Biles.", category: "Sports" },
+                { id: "williams1", author: "Serena Williams", quote: "I decided I can't pay a person to rewind time, so I may as well get over it.", category: "Sports" },
+                { id: "federer1", author: "Roger Federer", quote: "There is no way around the hard work. Embrace it.", category: "Sports" },
+                { id: "nadal1", author: "Rafael Nadal", quote: "Losing is not my enemy, fear of losing is my enemy.", category: "Sports" },
+                { id: "pele1", author: "Pelé", quote: "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice and most of all, love of what you are doing.", category: "Sports" },
+                { id: "messi1", author: "Lionel Messi", quote: "You have to fight to reach your dream. You have to sacrifice and work hard for it.", category: "Sports" },
+                { id: "ronaldo1", author: "Cristiano Ronaldo", quote: "Your love makes me strong. Your hate makes me unstoppable.", category: "Sports" },
+                { id: "woods1", author: "Tiger Woods", quote: "No matter how good you get you can always get better, and that's the exciting part.", category: "Sports" },
+                { id: "senna1", author: "Ayrton Senna", quote: "I am not designed to come second or third. I am designed to win.", category: "Sports" },
+                { id: "hamilton1", author: "Lewis Hamilton", quote: "In racing, there are always things you can learn, every single day. There is always space for improvement.", category: "Sports" },
+                { id: "king1", author: "Billie Jean King", quote: "Champions keep playing until they get it right.", category: "Sports" },
+
+                // Entertainment (Fictional Characters)
+                { id: "yoda1", author: "Yoda", quote: "Do or do not. There is no try.", category: "Entertainment" },
+                { id: "gandalf1", author: "Gandalf", quote: "All we have to decide is what to do with the time that is given us.", category: "Entertainment" },
+                { id: "picard1", author: "Jean-Luc Picard", quote: "It is possible to commit no mistakes and still lose. That is not a weakness; that is life.", category: "Entertainment" },
+                { id: "dumbledore1", author: "Albus Dumbledore", quote: "It does not do to dwell on dreams and forget to live.", category: "Entertainment" },
+                { id: "balboa1", author: "Rocky Balboa", quote: "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.", category: "Entertainment" },
+                { id: "vader1", author: "Darth Vader", quote: "The ability to destroy a planet is insignificant next to the power of the Force.", category: "Entertainment" },
+                { id: "holmes1", author: "Sherlock Holmes", quote: "Data! Data! Data! I can't make bricks without clay.", category: "Entertainment" },
+                { id: "tyrion1", author: "Tyrion Lannister", quote: "Never forget what you are. The rest of the world will not. Wear it like armor, and it can never be used to hurt you.", category: "Entertainment" },
+                { id: "white1", author: "Walter White", quote: "I am not in danger, Skyler. I am the danger.", category: "Entertainment" },
+                { id: "soprano1", author: "Tony Soprano", quote: "'Remember when' is the lowest form of conversation.", category: "Entertainment" }
+            ];
+
+
+            // --- NAVIGATION AND PAGE HANDLING ---
+            const pageMap = {
+                'home-nav-link': 'quotes-page',
+                'logo-link': 'quotes-page',
+                'library-nav-link': 'library-page',
+                'pomodoro-nav-link': 'pomodoro-page',
+                'games-nav-link': 'games-page',
+                'todo-nav-link': 'todo-page',
+                'account-nav-link': 'account-page',
+                'login-nav-link': 'login-page',
+            };
+
+            function showPage(pageId) {
+                pages.forEach(page => page.classList.add('hidden'));
+                const pageToShow = document.getElementById(pageId);
+                if (pageToShow) {
+                    pageToShow.classList.remove('hidden');
+                }
+                updateActiveNavLink(pageId);
+                mobileMenu.classList.add('hidden'); // Close mobile menu on navigation
+            }
+            
+            function updateActiveNavLink(activePageId) {
+                navLinks.forEach(link => {
+                    link.classList.remove('nav-link-active');
+                    if (pageMap[link.id] === activePageId) {
+                        link.classList.add('nav-link-active');
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link && pageMap[link.id]) {
+                    e.preventDefault();
+                    showPage(pageMap[link.id]);
+                    if (pageMap[link.id] === 'library-page') {
+                        renderAuthorList();
+                        renderQuoteOfTheDay();
+                    }
+                }
+            });
+            
+            mobileMenuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+
+            // --- THEME TOGGLE ---
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                themeToggleLightIcon.classList.remove('hidden');
+            } else {
+                themeToggleDarkIcon.classList.remove('hidden');
+            }
+            themeToggleBtn.addEventListener('click', () => {
+                themeToggleDarkIcon.classList.toggle('hidden');
+                themeToggleLightIcon.classList.toggle('hidden');
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            });
+
+            // --- AUTHENTICATION ---
+            onAuthStateChanged(auth, async (user) => {
+                currentUser = user;
+                if (user && !user.isAnonymous) {
+                    // Logged-in user
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (!userDocSnap.exists()) {
+                        // Create user profile if it doesn't exist (e.g., first Google sign-in)
+                        await setDoc(userDocRef, {
+                            uid: user.uid,
+                            email: user.email,
+                            displayName: user.displayName || 'User',
+                            nickname: user.displayName ? user.displayName.split(' ')[0] : 'User',
+                            photoURL: user.photoURL || `https://placehold.co/128x128/E2E8F0/4A5568?text=${user.displayName?.[0] || 'U'}&font=inter`
+                        });
+                    }
+                    updateUIForUser(user);
+                    setupUserFeatures(user.uid);
+                } else {
+                    // Logged-out or anonymous user
+                    updateUIForGuest();
+                    if (!user) { // If completely logged out, sign in anonymously for basic features
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (error) {
+                            console.error("Anonymous sign-in failed:", error);
+                        }
+                    } else { // Is anonymous
+                         setupUserFeatures(user.uid, true);
+                    }
+                }
+            });
+
+            function updateUIForUser(user) {
+                document.getElementById('login-nav-link').classList.add('hidden');
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('account-nav-link').classList.remove('hidden');
+                document.querySelectorAll('#mobile-menu .nav-link').forEach(el => {
+                    if(el.textContent === 'Account') el.classList.remove('hidden');
+                });
+                if(document.getElementById('login-page').classList.contains('hidden') === false) {
+                    showPage('quotes-page');
+                }
+            }
+
+            function updateUIForGuest() {
+                document.getElementById('login-nav-link').classList.remove('hidden');
+                document.getElementById('logout-btn').classList.add('hidden');
+                document.getElementById('account-nav-link').classList.add('hidden');
+                 document.querySelectorAll('#mobile-menu .nav-link').forEach(el => {
+                    if(el.textContent === 'Account') el.classList.add('hidden');
+                });
+            }
+            
+            function setupUserFeatures(userId, isAnonymous = false) {
+                // Simplified database paths to make security rules easier to manage.
+                const collectionPath = isAnonymous ? `anonymous_tasks/${userId}/tasks` : `users/${userId}/tasks`;
+                tasksCollection = collection(db, collectionPath);
+                
+                // Render the board immediately so columns are visible
+                renderToDoApp([]); 
+
+                if (unsubscribeTasks) unsubscribeTasks();
+                unsubscribeTasks = onSnapshot(tasksCollection, (snapshot) => {
+                    const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderToDoApp(tasks);
+                }, (error) => {
+                    console.error("Firestore snapshot error:", error);
+                    // Error handling for permissions can be added here
+                });
+            }
+
+            // Auth form logic
+            const authForm = document.getElementById('auth-form');
+            const authToggleLink = document.getElementById('auth-toggle-link');
+            const authError = document.getElementById('auth-error');
+            let isLogin = true;
+
+            authToggleLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                isLogin = !isLogin;
+                document.getElementById('name-fields').classList.toggle('hidden', isLogin);
+                document.getElementById('auth-title').textContent = isLogin ? 'Login' : 'Sign Up';
+                document.getElementById('auth-submit-btn').textContent = isLogin ? 'Login' : 'Sign Up';
+                authToggleLink.textContent = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login";
+                authError.classList.add('hidden');
+            });
+
+            authForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                authError.classList.add('hidden');
+
+                try {
+                    if (isLogin) {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    } else {
+                        const nickname = document.getElementById('nickname').value;
+                        const fullname = document.getElementById('fullname').value;
+                        if (!nickname || !fullname) {
+                            showAuthError("Please fill in all fields.");
+                            return;
+                        }
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        await updateProfile(userCredential.user, { displayName: fullname });
+                        // Create a user document in Firestore
+                        await setDoc(doc(db, "users", userCredential.user.uid), {
+                            uid: userCredential.user.uid,
+                            email: email,
+                            displayName: fullname,
+                            nickname: nickname,
+                            photoURL: `https://placehold.co/128x128/E2E8F0/4A5568?text=${nickname[0]}&font=inter`
+                        });
+                    }
+                } catch (error) {
+                    showAuthError(error.message);
+                }
+            });
+            
+            document.getElementById('google-signin-btn').addEventListener('click', async () => {
+                try {
+                    await signInWithPopup(auth, googleProvider);
+                } catch (error) {
+                    showAuthError(error.message);
+                }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                signOut(auth);
+                showPage('quotes-page');
+            });
+
+            function showAuthError(message) {
+                authError.textContent = message;
+                authError.classList.remove('hidden');
+            }
+
+            // --- QUOTES LOGIC (OPTIMIZED) ---
+            function renderMainQuotes() {
+                const quotesContainer = document.getElementById('quotes-container');
+                if (!quotesContainer) return;
+                quotesContainer.innerHTML = '';
+                const mainPageQuotes = [...quotes].sort(() => 0.5 - Math.random()).slice(0, 5);
+                mainPageQuotes.forEach((q, index) => {
+                    const quoteEl = document.createElement('div');
+                    quoteEl.className = 'grid md:grid-cols-12 gap-8 items-start animate-fade-in';
+                    quoteEl.style.animationDelay = `${index * 100}ms`;
+                    quoteEl.innerHTML = `
+                        <div class="md:col-span-4 text-left md:text-right md:pr-8">
+                            <p class="text-2xl font-bold text-orange-500 dark:text-orange-400">0${index + 1}</p>
+                            <h2 class="text-3xl font-bold mt-1">${q.author}</h2>
+                        </div>
+                        <div class="md:col-span-8 p-8 border-2 border-orange-400 dark:border-orange-500 rounded-xl bg-white dark:bg-gray-800/50 shadow-lg transform hover:scale-[1.02] transition-transform duration-300">
+                            <p class="text-xl md:text-2xl leading-relaxed text-gray-700 dark:text-gray-300">“${q.quote}”</p>
+                        </div>`;
+                    quotesContainer.appendChild(quoteEl);
+                });
+            }
+
+            // Quote Library Logic
+            const authorListView = document.getElementById('author-list-view');
+            const authorQuotesView = document.getElementById('author-quotes-view');
+            const authorListContainer = document.getElementById('author-list-container');
+            const authorSearchInput = document.getElementById('author-search');
+            const categoryTabsContainer = document.getElementById('category-tabs');
+            let activeCategory = 'All';
+
+            function renderAuthorList(filter = '', category = activeCategory) {
+                authorListView.classList.remove('hidden');
+                authorQuotesView.classList.add('hidden');
+                authorListContainer.innerHTML = '';
+
+                const quotesForCategory = category === 'All' ? quotes : quotes.filter(q => q.category === category);
+
+                const authorCounts = quotesForCategory.reduce((acc, quote) => {
+                    acc[quote.author] = (acc[quote.author] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const filteredAuthors = Object.entries(authorCounts).filter(([author]) => 
+                    author.toLowerCase().includes(filter.toLowerCase())
+                );
+
+                filteredAuthors.sort(([authorA], [authorB]) => authorA.localeCompare(authorB));
+
+                if (filteredAuthors.length === 0) {
+                    authorListContainer.innerHTML = `<p class="col-span-full text-center text-gray-500">No authors found in this category.</p>`;
+                    return;
+                }
+
+                filteredAuthors.forEach(([author, count]) => {
+                    const authorCard = document.createElement('div');
+                    authorCard.className = 'author-card bg-white dark:bg-gray-800/50 p-6 rounded-xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between items-center text-center border border-gray-200 dark:border-gray-700';
+                    authorCard.innerHTML = `
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800 dark:text-white">${author}</h3>
+                            <p class="text-green-500 dark:text-green-400 font-semibold mt-2">${count} ${count > 1 ? 'Quotes' : 'Quote'}</p>
+                        </div>
+                    `;
+                    authorCard.addEventListener('click', () => renderAuthorQuotes(author));
+                    authorListContainer.appendChild(authorCard);
+                });
+            }
+            
+            authorSearchInput.addEventListener('input', (e) => {
+                renderAuthorList(e.target.value);
+            });
+
+            categoryTabsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('category-tab')) {
+                    const newCategory = e.target.dataset.category;
+                    if (newCategory !== activeCategory) {
+                        activeCategory = newCategory;
+                        // Update active tab styles
+                        document.querySelectorAll('.category-tab').forEach(tab => {
+                            tab.classList.remove('category-tab-active');
+                            tab.classList.add('bg-gray-200', 'dark:bg-gray-700');
+                        });
+                        e.target.classList.add('category-tab-active');
+                        e.target.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+                        // Re-render the list with the new category
+                        renderAuthorList(authorSearchInput.value, activeCategory);
+                    }
+                }
+            });
+
+            async function renderAuthorQuotes(authorName) {
+                authorListView.classList.add('hidden');
+                authorQuotesView.classList.remove('hidden');
+                authorQuotesView.innerHTML = `<div class="spinner mx-auto my-16" style="width: 40px; height: 40px;"></div>`; // Add a loader
+
+                const authorQuotes = quotes.filter(q => q.author === authorName);
+                const quoteIds = authorQuotes.map(q => q.id);
+
+                // Batch fetch all data in parallel for performance
+                const quoteStatsPromises = quoteIds.map(id => getDoc(doc(db, 'quotes', id)));
+                let userLikesPromises = [];
+                let userBookmarksPromises = [];
+                if (currentUser && !currentUser.isAnonymous) {
+                    userLikesPromises = quoteIds.map(id => getDoc(doc(db, `users/${currentUser.uid}/likes`, id)));
+                    userBookmarksPromises = quoteIds.map(id => getDoc(doc(db, `users/${currentUser.uid}/bookmarks`, id)));
+                }
+
+                const [quoteStatsSnapshots, userLikesSnapshots, userBookmarksSnapshots] = await Promise.all([
+                    Promise.all(quoteStatsPromises),
+                    Promise.all(userLikesPromises),
+                    Promise.all(userBookmarksPromises)
+                ]);
+
+                // Create lookup maps for fast access
+                const quoteStatsMap = new Map(quoteStatsSnapshots.map((snap, i) => [quoteIds[i], snap.data() || { likes: 0, bookmarks: 0, views: 0 }]));
+                const userLikesMap = new Map(userLikesSnapshots.map((snap, i) => [quoteIds[i], snap.exists()]));
+                const userBookmarksMap = new Map(userBookmarksSnapshots.map((snap, i) => [quoteIds[i], snap.exists()]));
+
+                // Increment views using a batched write for efficiency
+                if (currentUser) {
+                    const batch = writeBatch(db);
+                    quoteIds.forEach(id => {
+                        const quoteRef = doc(db, 'quotes', id);
+                        const currentViews = quoteStatsMap.get(id).views || 0;
+                        batch.set(quoteRef, { views: currentViews + 1 }, { merge: true });
+                        // Update the local map so the UI shows the new count immediately
+                        quoteStatsMap.get(id).views = currentViews + 1;
+                    });
+                    await batch.commit();
+                }
+
+                // Build HTML from pre-fetched data
+                const quotesHTML = authorQuotes.map(q => {
+                    const stats = quoteStatsMap.get(q.id);
+                    const isLiked = userLikesMap.get(q.id) || false;
+                    const isBookmarked = userBookmarksMap.get(q.id) || false;
+                    return createQuoteCardHTML(q, stats, isLiked, isBookmarked);
+                }).join('');
+                
+                const quotesWrapperHTML = `
+                    <div class="text-center mb-12">
+                        <button id="back-to-authors" class="mb-8 text-green-600 dark:text-green-400 hover:underline">&larr; Back to All Authors</button>
+                        <h2 class="text-4xl md:text-5xl font-extrabold">${authorName}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">${authorQuotes.length} quotes found</p>
+                    </div>
+                    <div class="space-y-6 max-w-4xl mx-auto">${quotesHTML}</div>
+                `;
+                
+                authorQuotesView.innerHTML = quotesWrapperHTML;
+                document.getElementById('back-to-authors').addEventListener('click', () => {
+                    renderAuthorList(authorSearchInput.value, activeCategory);
+                });
+            }
+            
+            // --- Quote of the Day ---
+            function getQuoteOfTheDay() {
+                const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+                return quotes[dayOfYear % quotes.length];
+            }
+
+            async function renderQuoteOfTheDay() {
+                const qotdContainer = document.getElementById('qotd-container');
+                qotdContainer.innerHTML = `<h2 class="text-3xl font-bold text-center mb-6">Quote of the Day</h2><div class="spinner mx-auto"></div>`;
+                
+                const qotd = getQuoteOfTheDay();
+                const quoteId = qotd.id;
+                const quoteRef = doc(db, 'quotes', quoteId);
+
+                // Fetch data in parallel
+                const quoteStatsPromise = getDoc(quoteRef);
+                let userLikePromise = Promise.resolve(null);
+                let userBookmarkPromise = Promise.resolve(null);
+
+                if (currentUser && !currentUser.isAnonymous) {
+                    userLikePromise = getDoc(doc(db, `users/${currentUser.uid}/likes`, quoteId));
+                    userBookmarkPromise = getDoc(doc(db, `users/${currentUser.uid}/bookmarks`, quoteId));
+                }
+
+                try {
+                    const [quoteSnap, likeSnap, bookmarkSnap] = await Promise.all([quoteStatsPromise, userLikePromise, userBookmarkPromise]);
+
+                    const quoteData = quoteSnap.data() || { likes: 0, bookmarks: 0, views: 0 };
+                    const isLiked = likeSnap?.exists() || false;
+                    const isBookmarked = bookmarkSnap?.exists() || false;
+
+                    // Increment view count
+                    if (currentUser) {
+                        await setDoc(quoteRef, { views: (quoteData.views || 0) + 1 }, { merge: true });
+                        quoteData.views = (quoteData.views || 0) + 1; // Update local data for immediate display
+                    }
+
+                    const quoteCardHTML = createQuoteCardHTML(qotd, quoteData, isLiked, isBookmarked, true);
+                    qotdContainer.innerHTML = `<h2 class="text-3xl font-bold text-center mb-6">Quote of the Day</h2>${quoteCardHTML}`;
+                } catch (error) {
+                    console.error("Error rendering Quote of the Day:", error);
+                    qotdContainer.innerHTML = `<p class="text-center text-red-500">Could not load quote of the day.</p>`;
+                }
+            }
+
+            // --- Quote Interaction Logic ---
+            // New synchronous function to generate HTML. It does not fetch any data.
+            function createQuoteCardHTML(quote, quoteData, isLiked, isBookmarked, isQotd = false) {
+                return `
+                    <div class="p-6 bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border animate-fade-in ${isQotd ? 'border-orange-400' : 'border-gray-200 dark:border-gray-700'}" data-quote-id="${quote.id}">
+                        <p class="text-xl leading-relaxed text-gray-700 dark:text-gray-300">“${quote.quote}”</p>
+                        <div class="flex items-center justify-end space-x-4 mt-4 text-gray-500 dark:text-gray-400">
+                            <button class="quote-action-btn like-btn flex items-center space-x-1 hover:text-red-500 transition-colors ${isLiked ? 'text-red-500' : ''}">
+                                <svg class="w-5 h-5 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+                                <span class="like-count text-sm pointer-events-none">${quoteData.likes || 0}</span>
+                            </button>
+                            <button class="quote-action-btn bookmark-btn flex items-center space-x-1 hover:text-blue-500 transition-colors ${isBookmarked ? 'text-blue-500' : ''}">
+                                <svg class="w-5 h-5 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z"></path></svg>
+                                <span class="bookmark-count text-sm pointer-events-none">${quoteData.bookmarks || 0}</span>
+                            </button>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                <span class="view-count text-sm">${quoteData.views || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Delegated event listener for all quote cards in the library page
+            document.getElementById('library-page').addEventListener('click', e => {
+                const quoteCard = e.target.closest('[data-quote-id]');
+                if (!quoteCard) return;
+
+                const quoteId = quoteCard.dataset.quoteId;
+                const quote = quotes.find(q => q.id === quoteId);
+                if (!quote) return;
+
+                if (e.target.closest('.like-btn')) {
+                    handleLike(quoteId, quoteCard);
+                } else if (e.target.closest('.bookmark-btn')) {
+                    handleBookmark(quote, quoteCard);
+                }
+            });
+            
+            async function handleLike(quoteId, quoteEl) {
+                if (!currentUser || currentUser.isAnonymous) {
+                    const msg = document.createElement('div');
+                    msg.textContent = "Please log in to like quotes.";
+                    msg.className = "fixed top-5 right-5 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in z-50";
+                    document.body.appendChild(msg);
+                    setTimeout(() => msg.remove(), 3000);
+                    showPage('login-page');
+                    return;
+                }
+                const likeBtn = quoteEl.querySelector('.like-btn');
+                const likeCountEl = quoteEl.querySelector('.like-count');
+                const quoteRef = doc(db, 'quotes', quoteId);
+                const userLikeRef = doc(db, `users/${currentUser.uid}/likes`, quoteId);
+
+                await runTransaction(db, async (transaction) => {
+                    const quoteDoc = await transaction.get(quoteRef);
+                    const userLikeDoc = await transaction.get(userLikeRef);
+                    
+                    const currentLikes = quoteDoc.data()?.likes || 0;
+                    if (userLikeDoc.exists()) {
+                        // Unlike
+                        transaction.update(quoteRef, { likes: Math.max(0, currentLikes - 1) });
+                        transaction.delete(userLikeRef);
+                        likeBtn.classList.remove('text-red-500');
+                        likeCountEl.textContent = Math.max(0, currentLikes - 1);
+                    } else {
+                        // Like
+                        transaction.set(quoteRef, { likes: currentLikes + 1 }, { merge: true });
+                        transaction.set(userLikeRef, { likedAt: new Date() });
+                        likeBtn.classList.add('text-red-500');
+                        likeCountEl.textContent = currentLikes + 1;
+                    }
+                });
+            }
+
+            async function handleBookmark(quote, quoteEl) {
+                 if (!currentUser || currentUser.isAnonymous) {
+                    const msg = document.createElement('div');
+                    msg.textContent = "Please log in to bookmark quotes.";
+                    msg.className = "fixed top-5 right-5 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in z-50";
+                    document.body.appendChild(msg);
+                    setTimeout(() => msg.remove(), 3000);
+                    showPage('login-page');
+                    return;
+                }
+                const bookmarkBtn = quoteEl.querySelector('.bookmark-btn');
+                const bookmarkCountEl = quoteEl.querySelector('.bookmark-count');
+                const quoteRef = doc(db, 'quotes', quote.id);
+                const userBookmarkRef = doc(db, `users/${currentUser.uid}/bookmarks`, quote.id);
+
+                await runTransaction(db, async (transaction) => {
+                    const quoteDoc = await transaction.get(quoteRef);
+                    const userBookmarkDoc = await transaction.get(userBookmarkRef);
+                    
+                    const currentBookmarks = quoteDoc.data()?.bookmarks || 0;
+                    if (userBookmarkDoc.exists()) {
+                        // Unbookmark
+                        transaction.update(quoteRef, { bookmarks: Math.max(0, currentBookmarks - 1) });
+                        transaction.delete(userBookmarkRef);
+                        bookmarkBtn.classList.remove('text-blue-500');
+                        bookmarkCountEl.textContent = Math.max(0, currentBookmarks - 1);
+                    } else {
+                        // Bookmark
+                        transaction.set(quoteRef, { bookmarks: currentBookmarks + 1 }, { merge: true });
+                        transaction.set(userBookmarkRef, { quote: quote.quote, author: quote.author, bookmarkedAt: new Date() });
+                        bookmarkBtn.classList.add('text-blue-500');
+                        bookmarkCountEl.textContent = currentBookmarks + 1;
+                    }
+                });
+            }
+
+            // --- ACCOUNT PAGE LOGIC ---
+            document.getElementById('account-nav-link').addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (currentUser) {
+                    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+                    if (userDoc.exists()) {
+                        renderAccountPage(userDoc.data());
+                    }
+                }
+                showPage('account-page');
+            });
+
+            async function renderAccountPage(userData) {
+                document.getElementById('profile-pic').src = userData.photoURL || `https://placehold.co/128x128/E2E8F0/4A5568?text=${userData.nickname[0]}&font=inter`;
+                document.getElementById('profile-nickname').textContent = userData.nickname;
+                document.getElementById('profile-fullname').textContent = userData.displayName;
+                document.getElementById('profile-email').textContent = userData.email;
+
+                // Render bookmarked quotes
+                const bookmarksContainer = document.getElementById('bookmarked-quotes-container');
+                bookmarksContainer.innerHTML = '<div class="spinner mx-auto"></div>';
+                const bookmarksQuery = query(collection(db, `users/${currentUser.uid}/bookmarks`));
+                const querySnapshot = await getDocs(bookmarksQuery);
+                if (querySnapshot.empty) {
+                    bookmarksContainer.innerHTML = '<p class="text-gray-500">You haven\'t bookmarked any quotes yet.</p>';
+                    return;
+                }
+                bookmarksContainer.innerHTML = '';
+                querySnapshot.forEach(doc => {
+                    const bookmarkData = doc.data();
+                    const bookmarkEl = document.createElement('div');
+                    bookmarkEl.className = 'p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
+                    bookmarkEl.innerHTML = `
+                        <p class="italic">“${bookmarkData.quote}”</p>
+                        <p class="text-right font-semibold mt-2">- ${bookmarkData.author}</p>
+                    `;
+                    bookmarksContainer.appendChild(bookmarkEl);
+                });
+            }
+            
+            // Profile photo upload
+            document.getElementById('change-photo-btn').addEventListener('click', () => {
+                document.getElementById('photo-upload').click();
+            });
+
+            document.getElementById('photo-upload').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file || !currentUser) return;
+
+                const storageRef = ref(storage, `profile-pictures/${currentUser.uid}`);
+                try {
+                    await uploadBytes(storageRef, file);
+                    const photoURL = await getDownloadURL(storageRef);
+                    
+                    // Update auth profile and firestore doc
+                    await updateProfile(currentUser, { photoURL });
+                    await updateDoc(doc(db, 'users', currentUser.uid), { photoURL });
+
+                    document.getElementById('profile-pic').src = photoURL;
+
+                } catch (error) {
+                    console.error("Error uploading photo:", error);
+                }
+            });
+
+
+            // --- TODO APP LOGIC (CALENDAR UPDATE) ---
+            const todoPage = document.getElementById('todo-page');
+            const tasksRemainingEl = document.getElementById('tasks-remaining');
+            const tasksCompletedEl = document.getElementById('tasks-completed');
+            
+            // Calendar View Elements
+            const calendarView = document.getElementById('calendar-view');
+            const prevMonthBtn = document.getElementById('prev-month-btn');
+            const nextMonthBtn = document.getElementById('next-month-btn');
+            const monthYearHeader = document.getElementById('month-year-header');
+            const calendarGrid = document.getElementById('calendar-grid');
+
+            // Day View Elements
+            const dayView = document.getElementById('day-view');
+            const backToCalendarBtn = document.getElementById('back-to-calendar-btn');
+            const dayViewHeader = document.getElementById('day-view-header');
+            const dayTasksContainer = document.getElementById('day-tasks-container');
+
+            // Form elements within Day View
+            const addTaskForm = document.getElementById('add-task-form-day');
+            const taskInput = document.getElementById('task-input-day');
+            const deadlineInput = document.getElementById('deadline-input-day');
+            const geminiBtn = document.getElementById('gemini-breakdown-btn-day');
+            const geminiBtnText = document.getElementById('gemini-btn-text-day');
+            const geminiLoader = document.getElementById('gemini-loader-day');
+
+            let allTasks = [];
+            let currentDate = new Date();
+            let selectedDateStr = null;
+
+            // --- Helper Functions ---
+            function toDate(val) { if (!val) return new Date(0); if (typeof val === 'object' && typeof val.toDate === 'function') return val.toDate(); const d = new Date(val); if (!isNaN(d)) return d; return new Date(0); }
+            function normalizeDeadline(deadline) { if (!deadline) return null; let d; if (typeof deadline === 'object' && typeof deadline.toDate === 'function') { d = deadline.toDate(); } else { d = new Date(deadline); } if (!isNaN(d.getTime())) { d.setUTCHours(0,0,0,0); return d.toISOString().split('T')[0]; } if (/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return deadline; return null; }
+
+            // --- Main Render Function ---
+            function renderToDoApp(tasks) {
+                allTasks = tasks;
+                
+                let completedCount = 0;
+                let remainingCount = 0;
+                allTasks.forEach(task => task.completed ? completedCount++ : remainingCount++);
+                tasksRemainingEl.textContent = remainingCount;
+                tasksCompletedEl.textContent = completedCount;
+
+                renderCalendar();
+                if (selectedDateStr) {
+                    renderDayTasks(selectedDateStr);
+                }
+            }
+            
+            // --- Calendar Logic ---
+            function renderCalendar() {
+                if (!calendarGrid) return;
+                calendarGrid.innerHTML = '';
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                monthYearHeader.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                // Add empty cells for days before the 1st
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarGrid.innerHTML += `<div class="other-month"></div>`;
+                }
+
+                // Add cells for each day of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayEl = document.createElement('div');
+                    const date = new Date(year, month, day);
+                    const dateString = date.toISOString().split('T')[0];
+
+                    dayEl.className = 'calendar-day flex items-center justify-center p-1 rounded-lg border-2 border-transparent bg-white dark:bg-gray-700/50';
+                    dayEl.dataset.date = dateString;
+                    dayEl.innerHTML = `<span>${day}</span>`;
+
+                    if (date.getTime() === today.getTime()) {
+                        dayEl.classList.add('today');
+                    }
+                    
+                    const tasksForDay = allTasks.filter(task => normalizeDeadline(task.deadline) === dateString && !task.completed);
+                    if(tasksForDay.length > 0) {
+                        dayEl.innerHTML += `<div class="task-indicator"></div>`;
+                    }
+                    
+                    dayEl.addEventListener('click', () => showDayView(dateString));
+                    calendarGrid.appendChild(dayEl);
+                }
+            }
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            // --- Day View Logic ---
+            function showDayView(dateString) {
+                selectedDateStr = dateString;
+                const date = new Date(dateString + 'T00:00:00'); // Use T00:00 to avoid timezone issues
+                dayViewHeader.textContent = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                deadlineInput.value = dateString; // Set hidden input for the form
+
+                renderDayTasks(dateString);
+
+                // Animation
+                calendarView.classList.add('view-exit');
+                dayView.classList.remove('translate-x-full', 'opacity-0');
+                dayView.classList.add('view-enter');
+            }
+
+            function hideDayView() {
+                selectedDateStr = null;
+                 // Animation
+                calendarView.classList.remove('view-exit');
+                dayView.classList.remove('view-enter');
+                dayView.classList.add('translate-x-full', 'opacity-0');
+            }
+            
+            backToCalendarBtn.addEventListener('click', hideDayView);
+
+            function renderDayTasks(dateString) {
+                dayTasksContainer.innerHTML = '';
+                const tasksForDay = allTasks.filter(task => normalizeDeadline(task.deadline) === dateString);
+                
+                tasksForDay.sort((a, b) => { 
+                    const completedDiff = (a.completed === b.completed) ? 0 : (a.completed ? 1 : -1); 
+                    if (completedDiff !== 0) return completedDiff;
+                    return toDate(a.createdAt) - toDate(b.createdAt);
+                });
+
+                if (tasksForDay.length === 0) {
+                    dayTasksContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 py-8">No tasks for this day. Add one above!</p>`;
+                } else {
+                    tasksForDay.forEach(task => {
+                        const taskEl = document.createElement('div');
+                        taskEl.className = `p-4 rounded-lg flex items-start gap-3 transition-all duration-300 ${task.completed ? 'bg-green-100 dark:bg-green-900/50 opacity-60' : 'bg-gray-50 dark:bg-gray-700 shadow-sm'}`;
+                        taskEl.innerHTML = `
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 form-checkbox h-5 w-5 rounded-full text-green-500 bg-gray-100 border-gray-300 focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                            <div class="flex-grow">
+                                <p class="font-medium ${task.completed ? 'line-through text-gray-500 dark:text-gray-400' : ''}">${task.text}</p>
+                            </div>
+                            <button class="delete-btn text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-2xl leading-none font-bold">&times;</button>
+                        `;
+
+                        // Add event listeners for checkbox and delete
+                        const checkbox = taskEl.querySelector('input[type="checkbox"]');
+                        checkbox.addEventListener('change', (e) => {
+                            const taskRef = doc(db, tasksCollection.path, task.id);
+                            updateDoc(taskRef, { completed: e.target.checked });
+                        });
+                        taskEl.querySelector('.delete-btn').addEventListener('click', () => {
+                            const taskRef = doc(db, tasksCollection.path, task.id);
+                            deleteDoc(taskRef);
+                        });
+                        dayTasksContainer.appendChild(taskEl);
+                    });
+                }
+            }
+
+            // --- Form Submission Logic ---
+            addTaskForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const taskText = taskInput.value.trim();
+                const deadline = deadlineInput.value;
+                if (taskText === '' || !tasksCollection || !deadline) return;
+                await addDoc(tasksCollection, { text: taskText, deadline: deadline, completed: false, createdAt: new Date() });
+                taskInput.value = '';
+            });
+
+            geminiBtn.addEventListener('click', async () => {
+                const taskText = taskInput.value.trim();
+                const deadline = deadlineInput.value;
+                if (taskText === '' || !deadline) { console.warn('Please enter a task to break down.'); return; }
+
+                geminiBtnText.textContent = 'Thinking...';
+                geminiLoader.classList.remove('hidden');
+                geminiBtn.disabled = true;
+
+                const prompt = `Break down the following complex task into a short list of smaller, actionable sub-tasks: "${taskText}". Respond with a JSON object containing a single key "subtasks" which is an array of strings.`;
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: { "subtasks": { "type": "ARRAY", "items": { "type": "STRING" } } } } }
+                };
+                const apiKey = "AIzaSyAQSNNo2D0S6oSke3AjQZmcdCpo6uloxVw";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) { throw new Error(`API request failed with status ${response.status}`); }
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
+                        const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                        if (jsonResponse.subtasks && jsonResponse.subtasks.length > 0) {
+                            const batch = writeBatch(db);
+                            jsonResponse.subtasks.forEach(subtask => {
+                                const newDocRef = doc(collection(db, tasksCollection.path));
+                                batch.set(newDocRef, { text: subtask, deadline: deadline, completed: false, createdAt: new Date() });
+                            });
+                            await batch.commit();
+                            taskInput.value = '';
+                        }
+                    } else { throw new Error("Invalid response structure from API."); }
+                } catch (error) { console.error("Error calling Gemini API:", error); } 
+                finally { geminiBtnText.textContent = '✨ Break Down'; geminiLoader.classList.add('hidden'); geminiBtn.disabled = false; }
+            });
+            
+            // --- POMODORO TIMER LOGIC (ENHANCED) ---
+            const timerDisplay = document.getElementById('timer-display');
+            const timerRing = document.getElementById('timer-ring-fg');
+            const timerControlBtn = document.getElementById('timer-control-btn');
+            const timerResetBtn = document.getElementById('timer-reset-btn');
+            const modeButtonsContainer = document.getElementById('pomodoro-modes');
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            const pomodoroCountEl = document.getElementById('pomodoro-count');
+            const customDurationInput = document.getElementById('custom-duration-input');
+            const startFocusSessionBtn = document.getElementById('start-focus-session-btn');
+            const sessionPlanContainer = document.getElementById('session-plan-container');
+            const sessionPlanEl = document.getElementById('session-plan');
+
+            const timerSettings = {
+                pomodoro: { default: 25 * 60, name: "Pomodoro" },
+                shortBreak: { default: 5 * 60, name: "Short Break" },
+                longBreak: { default: 15 * 60, name: "Long Break" },
+            };
+
+            let currentMode = 'pomodoro';
+            let timerInterval;
+            let timeLeft = timerSettings.pomodoro.default;
+            let totalDurationForMode = timerSettings.pomodoro.default;
+            let isRunning = false;
+            let pomodorosCompleted = 0;
+            const ringCircumference = 2 * Math.PI * 54;
+            timerRing.style.strokeDasharray = ringCircumference;
+
+            // State for custom focus sessions
+            let sessionQueue = [];
+            let currentSessionIndex = -1;
+
+            function updateTimerDisplay() {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const progress = (totalDurationForMode - timeLeft) / totalDurationForMode;
+                const offset = ringCircumference * (1 - progress);
+                timerRing.style.strokeDashoffset = offset;
+            }
+
+            function switchMode(newMode) {
+                if (currentSessionIndex !== -1) { return; } // Block manual switching during a session
+                
+                currentMode = newMode;
+                totalDurationForMode = timerSettings[newMode].default;
+                timeLeft = totalDurationForMode;
+                isRunning = false;
+                clearInterval(timerInterval);
+                timerControlBtn.textContent = 'Start';
+                updateTimerDisplay();
+
+                modeButtons.forEach(btn => {
+                    if (btn.dataset.mode === newMode) {
+                        btn.classList.add('bg-orange-500', 'text-white');
+                        btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+                    } else {
+                        btn.classList.remove('bg-orange-500', 'text-white');
+                        btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+                    }
+                });
+            }
+
+            function handleTimerCompletion() {
+                clearInterval(timerInterval);
+                isRunning = false;
+                timerControlBtn.textContent = 'Start';
+                
+                const alarm = new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3');
+                alarm.play().catch(e => console.error("Audio playback failed:", e));
+                
+                if (currentSessionIndex !== -1) {
+                    currentSessionIndex++;
+                    if (currentSessionIndex < sessionQueue.length) {
+                        loadSessionFromQueue();
+                    } else {
+                        sessionPlanEl.innerHTML += `<p class="font-bold text-green-500 mt-2">✅ Focus Session Complete!</p>`;
+                        resetSession();
+                        switchMode('pomodoro');
+                    }
+                } else {
+                    if (currentMode === 'pomodoro') {
+                        pomodorosCompleted++;
+                        pomodoroCountEl.textContent = pomodorosCompleted;
+                        switchMode(pomodorosCompleted % 4 === 0 ? 'longBreak' : 'shortBreak');
+                    } else {
+                        switchMode('pomodoro');
+                    }
+                }
+            }
+
+            function startTimer() {
+                isRunning = true;
+                timerControlBtn.textContent = 'Pause';
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    if (timeLeft <= 0) {
+                        handleTimerCompletion();
+                    }
+                }, 1000);
+            }
+
+            function pauseTimer() {
+                isRunning = false;
+                timerControlBtn.textContent = 'Start';
+                clearInterval(timerInterval);
+            }
+
+            timerControlBtn.addEventListener('click', () => {
+                if (isRunning) pauseTimer();
+                else startTimer();
+            });
+
+            timerResetBtn.addEventListener('click', () => {
+                resetSession();
+                switchMode(currentMode);
+            });
+
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            function resetSession() {
+                sessionQueue = [];
+                currentSessionIndex = -1;
+                sessionPlanContainer.classList.add('hidden');
+                sessionPlanEl.innerHTML = '';
+                modeButtonsContainer.style.pointerEvents = 'auto';
+                modeButtonsContainer.style.opacity = '1';
+            }
+
+            startFocusSessionBtn.addEventListener('click', () => {
+                const totalMinutes = parseInt(customDurationInput.value, 10);
+                if (isNaN(totalMinutes) || totalMinutes < 10) {
+                    customDurationInput.classList.add('ring-2', 'ring-red-500');
+                    setTimeout(() => customDurationInput.classList.remove('ring-2', 'ring-red-500'), 2000);
+                    return;
+                }
+
+                resetSession();
+
+                const maxSessionLength = 40;
+                const shortBreakLength = 5;
+
+                const numSessions = Math.ceil(totalMinutes / maxSessionLength);
+                const sessionLength = Math.round(totalMinutes / numSessions);
+
+                for (let i = 0; i < numSessions; i++) {
+                    sessionQueue.push({ type: 'pomodoro', duration: sessionLength * 60, name: `Focus Block ${i + 1}` });
+                    if (i < numSessions - 1) {
+                        sessionQueue.push({ type: 'shortBreak', duration: shortBreakLength * 60, name: 'Short Break' });
+                    }
+                }
+
+                sessionPlanEl.innerHTML = sessionQueue.map(s => 
+                    `<p class="flex items-center transition-all duration-300"><span class="inline-block w-4 h-4 rounded-full mr-2 ${s.type === 'pomodoro' ? 'bg-orange-400' : 'bg-blue-400'}"></span>${s.name} (${s.duration / 60} minutes)</p>`
+                ).join('');
+                sessionPlanContainer.classList.remove('hidden');
+
+                currentSessionIndex = 0;
+                loadSessionFromQueue();
+            });
+
+            function loadSessionFromQueue() {
+                if (currentSessionIndex < 0 || currentSessionIndex >= sessionQueue.length) {
+                    resetSession();
+                    return;
+                }
+
+                modeButtonsContainer.style.pointerEvents = 'none';
+                modeButtonsContainer.style.opacity = '0.5';
+
+                const session = sessionQueue[currentSessionIndex];
+                currentMode = session.type;
+                totalDurationForMode = session.duration;
+                timeLeft = totalDurationForMode;
+                
+                modeButtons.forEach(btn => {
+                    const isBreak = session.type.includes('Break');
+                    const isCurrent = isBreak ? btn.dataset.mode.includes('Break') : btn.dataset.mode === session.type;
+                    if (isCurrent) {
+                        btn.classList.add('bg-orange-500', 'text-white');
+                        btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+                    } else {
+                        btn.classList.remove('bg-orange-500', 'text-white');
+                        btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+                    }
+                });
+
+                document.querySelectorAll('#session-plan p').forEach((p, i) => {
+                    p.classList.toggle('font-bold', i === currentSessionIndex);
+                    p.classList.toggle('text-orange-500', i === currentSessionIndex);
+                    p.classList.toggle('dark:text-orange-400', i === currentSessionIndex);
+                });
+
+                updateTimerDisplay();
+                startTimer();
+            }
+
+            // --- STOPWATCH LOGIC ---
+            const stopwatchDisplay = document.getElementById('stopwatch-display');
+            const stopwatchStartBtn = document.getElementById('stopwatch-start-btn');
+            const stopwatchStopBtn = document.getElementById('stopwatch-stop-btn');
+            const stopwatchResetBtn = document.getElementById('stopwatch-reset-btn');
+
+            let stopwatchInterval;
+            let stopwatchTime = 0;
+
+            function updateStopwatchDisplay() {
+                const hours = Math.floor(stopwatchTime / 3600);
+                const minutes = Math.floor((stopwatchTime % 3600) / 60);
+                const seconds = stopwatchTime % 60;
+                stopwatchDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            stopwatchStartBtn.addEventListener('click', () => {
+                stopwatchStartBtn.classList.add('hidden');
+                stopwatchStopBtn.classList.remove('hidden');
+                stopwatchInterval = setInterval(() => {
+                    stopwatchTime++;
+                    updateStopwatchDisplay();
+                }, 1000);
+            });
+
+            stopwatchStopBtn.addEventListener('click', () => {
+                stopwatchStartBtn.classList.remove('hidden');
+                stopwatchStopBtn.classList.add('hidden');
+                clearInterval(stopwatchInterval);
+            });
+
+            stopwatchResetBtn.addEventListener('click', () => {
+                clearInterval(stopwatchInterval);
+                stopwatchTime = 0;
+                updateStopwatchDisplay();
+                stopwatchStartBtn.classList.remove('hidden');
+                stopwatchStopBtn.classList.add('hidden');
+            });
+
+
+            // --- GAMES LOGIC (EXISTING) ---
+            const gameList = document.getElementById('game-list');
+            const gameArea = document.getElementById('game-area');
+
+            const msSource = `(function() { window.mountMinesweeper = function(container) {
+                container.innerHTML = '';
+                const wrap = document.createElement('div');
+                wrap.className = 'bg-white dark:bg-gray-800/50 p-4 rounded-xl';
+                wrap.innerHTML = '<div class="flex items-center justify-between mb-4">' +
+                    '<div><label class="text-sm mr-2">Difficulty:</label>' +
+                    '<select id="ms-diff" class="rounded border px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white"><option value="0">Easy</option><option value="1">Medium</option><option value="2">Hard</option></select></div>' +
+                    '<div><span id="ms-score" class="font-bold">Score: 0</span> <span id="ms-best" class="ml-4 text-sm text-gray-500"></span> <span id="ms-message" class="ml-4 font-bold"></span></div></div>' +
+                    '<div id="ms-board" class="mt-4 mx-auto inline-block"></div>';
+                container.appendChild(wrap);
+                const diffMap = [{size:8,mines:10},{size:12,mines:25},{size:16,mines:40}];
+                let size, mines, board, revealed, flags, score, gameOver, revealedCount;
+                const boardEl = wrap.querySelector('#ms-board'), scoreEl = wrap.querySelector('#ms-score'), bestEl = wrap.querySelector('#ms-best'), msgEl = wrap.querySelector('#ms-message');
+                function loadBest() { const k = 'best_mines_' + size + 'x' + size; const v = localStorage.getItem(k); bestEl.textContent = v ? ('Best: ' + v) : ''; }
+                function saveBest() { const key = 'best_mines_' + size + 'x' + size; const prev = parseInt(localStorage.getItem(key)||'0',10); if (score>prev) { localStorage.setItem(key, score); bestEl.textContent = 'Best: ' + score; } }
+                function build() {
+                    const diff = parseInt(wrap.querySelector('#ms-diff').value, 10);
+                    size = diffMap[diff].size; mines = diffMap[diff].mines;
+                    board = Array.from({length:size}, ()=>Array(size).fill(0));
+                    revealed = Array.from({length:size}, ()=>Array(size).fill(false));
+                    flags = Array.from({length:size}, ()=>Array(size).fill(false));
+                    score = 0; gameOver = false; revealedCount = 0; scoreEl.textContent = 'Score: 0'; msgEl.textContent = '';
+                    let placed = 0;
+                    while (placed < mines) { const r = Math.floor(Math.random()*size), c = Math.floor(Math.random()*size); if (board[r][c] === -1) continue; board[r][c] = -1; placed++; }
+                    for (let r=0; r<size; r++) for (let c=0; c<size; c++) { if (board[r][c] !== -1) { let cnt = 0; for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) { const nr = r+dr, nc = c+dc; if (nr>=0 && nr<size && nc>=0 && nc<size && board[nr][nc] === -1) cnt++; } board[r][c] = cnt; } }
+                    render(); loadBest();
+                }
+                function render() { boardEl.innerHTML = ''; const grid = document.createElement('div'); grid.style.display = 'grid'; grid.style.gridTemplateColumns = \`repeat(\${size}, 30px)\`; grid.style.gap = '4px'; for (let r=0; r<size; r++) for (let c=0; c<size; c++) { const btn = document.createElement('button'); btn.style.width='30px'; btn.style.height='30px'; btn.className = 'flex items-center justify-center font-bold text-lg rounded'; if (revealed[r][c]) { btn.className += document.documentElement.classList.contains('dark') ? ' bg-gray-600' : ' bg-gray-200'; if (board[r][c] === -1) { btn.textContent = '💣'; } else if (board[r][c] > 0) { btn.textContent = board[r][c]; const colors = ['','blue','green','red','#4B0082','maroon','#40E0D0','black','gray']; btn.style.color = colors[board[r][c]]; } } else { btn.className += document.documentElement.classList.contains('dark') ? ' bg-gray-500 hover:bg-gray-400' : ' bg-gray-300 hover:bg-gray-400'; if (flags[r][c]) btn.textContent = '🚩'; } (function(rr,cc){ btn.addEventListener('click', ()=>handleCellClick(rr,cc)); btn.addEventListener('contextmenu', (e)=>{ e.preventDefault(); toggleFlag(rr,cc); }); })(r,c); grid.appendChild(btn); } boardEl.appendChild(grid); }
+                function toggleFlag(r,c) { if(gameOver || revealed[r][c]) return; flags[r][c] = !flags[r][c]; render(); }
+                function floodFill(r,c) { if (r<0||c<0||r>=size||c>=size||revealed[r][c]||flags[r][c]) return; revealed[r][c]=true; revealedCount++; if (board[r][c] === 0) { for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) { floodFill(r+dr, c+dc); } } }
+                function handleCellClick(r,c) { if (gameOver || flags[r][c] || revealed[r][c]) return; if (board[r][c] === -1) { gameOver=true; msgEl.textContent='Game Over!'; msgEl.className='ml-4 font-bold text-red-500'; board.forEach((row, rIdx) => row.forEach((_, cIdx) => { if(board[rIdx][cIdx] === -1) revealed[rIdx][cIdx] = true; })); render(); setTimeout(()=> build(), 3000); return; } if (!revealed[r][c]) { if (board[r][c] === 0) { floodFill(r,c); } else { revealed[r][c] = true; revealedCount++; } } score = revealedCount; scoreEl.textContent = 'Score: ' + score; if (revealedCount === size * size - mines) { gameOver=true; score = size * size; saveBest(); msgEl.textContent='You Win!'; msgEl.className='ml-4 font-bold text-green-500'; render(); setTimeout(()=> build(), 3000); } else { render(); } }
+                wrap.querySelector('#ms-diff').addEventListener('change', build);
+                build();
+            }} )();`;
+
+            const tSource = `(function() { window.mountTetris = function(container) {
+                if (window.tetrisLoop) clearInterval(window.tetrisLoop);
+                if (window.tetrisKeydownHandler) document.removeEventListener('keydown', window.tetrisKeydownHandler);
+                container.innerHTML = '';
+                const wrap = document.createElement('div');
+                wrap.className = 'bg-white dark:bg-gray-800/50 p-4 rounded-xl text-center';
+                wrap.innerHTML = '<div class="flex items-center justify-between mb-4">' +
+                    '<div><label class="text-sm mr-2">Difficulty:</label>' +
+                    '<select id="t-diff" class="rounded border px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white"><option value="0">Easy</option><option value="1">Medium</option><option value="2">Hard</option></select></div>' +
+                    '<div><span id="t-score" class="font-bold">Score: 0</span> <span id="t-best" class="ml-4 text-sm text-gray-500"></span> <span id="t-message" class="ml-4 font-bold"></span></div></div><div id="t-canvas-wrap" class="mt-4 inline-block relative"></div>';
+                container.appendChild(wrap);
+                const scoreEl = wrap.querySelector('#t-score'), bestEl = wrap.querySelector('#t-best'), msgEl = wrap.querySelector('#t-message'), canvasWrap = wrap.querySelector('#t-canvas-wrap');
+                const cvs = document.createElement('canvas'); cvs.width = 240; cvs.height = 480; cvs.className = 'border dark:border-gray-600'; canvasWrap.appendChild(cvs); const ctx = cvs.getContext('2d');
+                const cols=10, rows=20, block=24; let grid = Array.from({length:rows}, ()=>Array(cols).fill(0)); let score = 0;
+                const shapes=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[1,1,0],[0,1,1]],[[0,1,1],[1,1,0]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
+                const colors=['#ef4444','#f97316','#eab308','#84cc16','#22c55e','#14b8a6','#06b6d4'];
+                let cur; let gameOver = false;
+                function loadBest(){ bestEl.textContent = 'Best: ' + (localStorage.getItem('best_tetris') || '0'); }
+                function saveBest(){ const prev=parseInt(localStorage.getItem('best_tetris')||'0'); if(score>prev) localStorage.setItem('best_tetris',score); }
+                function collides(p) { for (let r=0;r<p.shape.length;r++) for (let c=0;c<p.shape[r].length;c++) { if (!p.shape[r][c]) continue; let newX=p.x+c, newY=p.y+r; if(newX<0 || newX>=cols || newY>=rows) return true; if (newY>=0 && grid[newY][newX]) return true; } return false; }
+                function merge() { for(let r=0;r<cur.shape.length;r++) for(let c=0;c<cur.shape[r].length;c++) { if(cur.shape[r][c]) grid[cur.y+r][cur.x+c]=cur.color; } }
+                function rotate() { const o=cur.shape; const n=o[0].map((_,c)=>o.map(r=>r[c]).reverse()); cur.shape=n; if(collides(cur)) cur.shape=o; }
+                function spawn() { const i=Math.floor(Math.random()*shapes.length); cur={shape:shapes[i],color:colors[i],y:0,x:Math.floor(cols/2)-Math.floor(shapes[i][0].length/2)}; if(collides(cur)) { gameOver=true; clearInterval(window.tetrisLoop); document.removeEventListener('keydown', window.tetrisKeydownHandler); saveBest(); loadBest(); msgEl.textContent='Game Over!'; msgEl.className='ml-4 font-bold text-red-500'; const btn = document.createElement('button'); btn.textContent='Restart'; btn.className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 bg-blue-500 text-white rounded z-10'; btn.onclick=()=>{mountTetris(container)}; canvasWrap.appendChild(btn); } }
+                function clearLines() { let linesCleared=0; for (let r=rows-1; r>=0; r--) { if(grid[r].every(c=>c!==0)) { linesCleared++; grid.splice(r,1); grid.unshift(Array(cols).fill(0)); r++; } } if (linesCleared>0) { score+=linesCleared*10; scoreEl.textContent = 'Score: '+score; } }
+                function draw() { ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#1f2937' : '#f9fafb'; ctx.fillRect(0,0,cvs.width,cvs.height); for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) if(grid[r][c]) { ctx.fillStyle=grid[r][c]; ctx.fillRect(c*block, r*block, block-1, block-1); } if(cur){ ctx.fillStyle=cur.color; for(let r=0;r<cur.shape.length;r++) for(let c=0;c<cur.shape[r].length;c++) if(cur.shape[r][c]) ctx.fillRect((cur.x+c)*block,(cur.y+r)*block,block-1,block-1); } }
+                function step() { if(gameOver) return; cur.y++; if (collides(cur)) { cur.y--; merge(); spawn(); clearLines(); } draw(); }
+                window.tetrisKeydownHandler = (e) => { 
+                    if(gameOver) return; 
+                    const keys = ['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp'];
+                    if (keys.includes(e.key)) {
+                        e.preventDefault();
+                    }
+                    if(e.key==='ArrowLeft'){cur.x--;if(collides(cur))cur.x++;} 
+                    else if(e.key==='ArrowRight'){cur.x++;if(collides(cur))cur.x--;} 
+                    else if(e.key==='ArrowDown'){step();} 
+                    else if(e.key==='ArrowUp'){rotate();} 
+                    draw(); 
+                };
+                document.addEventListener('keydown', window.tetrisKeydownHandler);
+                const speeds = [700, 400, 200]; let currentSpeed = speeds[0];
+                wrap.querySelector('#t-diff').addEventListener('change', (e)=>{ currentSpeed=speeds[parseInt(e.target.value,10)]; clearInterval(window.tetrisLoop); window.tetrisLoop=setInterval(step, currentSpeed); });
+                spawn(); draw(); loadBest();
+                window.tetrisLoop = setInterval(step, currentSpeed);
+            }} )();`;
+
+            const bSource = `(function() { window.mountBrickBreaker = function(container) {
+                if(window.brickLoop) clearInterval(window.brickLoop);
+                container.innerHTML = '';
+                const wrap = document.createElement('div');
+                wrap.className = 'bg-white dark:bg-gray-800/50 p-4 rounded-xl text-center';
+                wrap.innerHTML = '<div class="flex items-center justify-between mb-4">' +
+                    '<div><label class="text-sm mr-2">Difficulty:</label>' +
+                    '<select id="b-diff" class="rounded border px-2 py-1 bg-white dark:bg-gray-600 text-gray-900 dark:text-white"><option value="0">Easy</option><option value="1">Medium</option><option value="2">Hard</option></select></div>' +
+                    '<div><span id="b-score" class="font-bold">Score: 0</span><span id="b-lives" class="ml-4 font-bold text-blue-500"></span><span id="b-best" class="ml-4 text-sm text-gray-500"></span><span id="b-message" class="ml-4 font-bold"></span></div></div><div id="b-canvas-wrap" class="mt-4 inline-block relative"></div>';
+                container.appendChild(wrap);
+                const canvasWrap = wrap.querySelector('#b-canvas-wrap'), cvs = document.createElement('canvas'); cvs.width = 480; cvs.height = 320; cvs.className = 'border dark:border-gray-600'; canvasWrap.appendChild(cvs); const ctx = cvs.getContext('2d');
+                const scoreEl = wrap.querySelector('#b-score'), bestEl = wrap.querySelector('#b-best'), livesEl = wrap.querySelector('#b-lives'), msgEl = wrap.querySelector('#b-message');
+                let paddle={x:cvs.width/2-40,w:80,h:12},ball={r:6},bricks=[],score=0,lives=3,gameOver=false;
+                const speeds=[{dx:2,dy:-2},{dx:3,dy:-3},{dx:4,dy:-4}]; let ballSpeed;
+                function loadBest(){ bestEl.textContent = 'Best: '+(localStorage.getItem('best_brick')||'0'); }
+                function saveBest(){ const p=parseInt(localStorage.getItem('best_brick')||'0'); if(score>p)localStorage.setItem('best_brick',score); }
+                function resetBall(){ ball.x=cvs.width/2; ball.y=cvs.height-45; ball.dx=ballSpeed.dx; ball.dy=ballSpeed.dy; }
+                function buildBricks(){ bricks.length=0; const c=8,r=4,p=4,bW=(cvs.width-p)/c-p,bH=18; for(let i=0;i<r;i++) for(let j=0;j<c;j++) bricks.push({x:p+j*(bW+p),y:40+i*(bH+p),w:bW,h:bH,a:true}); }
+                function draw(){ ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#1f2937' : '#f9fafb'; ctx.fillRect(0,0,cvs.width,cvs.height); bricks.forEach(b=>{if(b.a){ctx.fillStyle='#ef4444';ctx.fillRect(b.x,b.y,b.w,b.h);}}); ctx.fillStyle='#60a5fa';ctx.fillRect(paddle.x,cvs.height-30,paddle.w,paddle.h); ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fillStyle='#facc15';ctx.fill(); }
+                function step(){ if(gameOver)return; ball.x+=ball.dx;ball.y+=ball.dy; if(ball.x<ball.r||ball.x>cvs.width-ball.r)ball.dx*=-1; if(ball.y<ball.r)ball.dy*=-1; if(ball.y>cvs.height){ lives--; livesEl.textContent='Lives: '+lives; if(lives<=0){ gameOver=true; saveBest(); loadBest(); msgEl.textContent='Game Over!'; msgEl.className='ml-4 font-bold text-red-500'; clearInterval(window.brickLoop); } else { resetBall(); } } if(ball.y+ball.r>=cvs.height-30&&ball.x>paddle.x&&ball.x<paddle.x+paddle.w){ball.dy*=-1;ball.y=cvs.height-30-ball.r;} bricks.forEach(b=>{if(b.a&&ball.x>b.x&&ball.x<b.x+b.w&&ball.y>b.y&&ball.y<b.y+b.h){b.a=false;ball.dy*=-1;score+=5;scoreEl.textContent='Score: '+score;}}); if(bricks.every(b=>!b.a)){gameOver=true;saveBest();loadBest();msgEl.textContent='You Win!';msgEl.className='ml-4 font-bold text-green-500';clearInterval(window.brickLoop);} draw(); }
+                function start(){ const d=parseInt(wrap.querySelector('#b-diff').value,10); ballSpeed=speeds[d]; score=0; lives=3; gameOver=false; msgEl.textContent=''; scoreEl.textContent='Score: 0'; livesEl.textContent='Lives: '+lives; buildBricks(); resetBall(); loadBest(); if(window.brickLoop)clearInterval(window.brickLoop); window.brickLoop=setInterval(step,16); }
+                cvs.addEventListener('mousemove',(e)=>{const r=cvs.getBoundingClientRect();paddle.x=Math.max(0,Math.min(cvs.width-paddle.w,e.clientX-r.left-paddle.w/2));});
+                wrap.querySelector('#b-diff').addEventListener('change', start);
+                start();
+            }} )();`;
+
+            function loadGame(name) {
+                gameArea.innerHTML = '<div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">Loading...</div>';
+                
+                const oldScript = document.getElementById('game-script');
+                if (oldScript) oldScript.remove();
+
+                let source, mountFn;
+                if (name === 'minesweeper') { source = msSource; mountFn = 'mountMinesweeper'; } 
+                else if (name === 'tetris') { source = tSource; mountFn = 'mountTetris'; } 
+                else if (name === 'brickbreaker') { source = bSource; mountFn = 'mountBrickBreaker'; } 
+                else { gameArea.innerHTML = '<div class="p-4 text-red-500">Game not found</div>'; return; }
+
+                const script = document.createElement('script');
+                script.id = 'game-script';
+                script.textContent = source;
+                document.body.appendChild(script);
+
+                if (window[mountFn]) {
+                    window[mountFn](gameArea);
+                } else {
+                    console.error('Game mount function not found:', mountFn);
+                    gameArea.innerHTML = '<div class="p-4 text-red-500">Error loading game script</div>';
+                }
+            }
+
+            document.querySelectorAll('#game-list [data-game]').forEach(card => {
+                card.addEventListener('click', () => {
+                    const g = card.dataset.game;
+                    loadGame(g);
+                });
+            });
+            
+            // --- INITIALIZATION ---
+            showPage('quotes-page');
+            renderMainQuotes();
+            updateTimerDisplay(); // Initial Pomodoro display
+            updateStopwatchDisplay(); // Initial Stopwatch display
+            // Set default active tab on load
+            document.querySelector('.category-tab[data-category="All"]').classList.add('category-tab-active');
+            document.querySelector('.category-tab[data-category="All"]').classList.remove('bg-gray-200', 'dark:bg-gray-700');
+        });
+    </script>
+</body>
+</html>
