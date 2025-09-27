@@ -740,18 +740,20 @@
                 });
             }
 
-            document.addEventListener('click', (e) => {
-                const link = e.target.closest('a');
+            function handleNavigation(event) {
+                const link = event.target.closest('a');
                 if (link && pageMap[link.id]) {
-                    e.preventDefault();
+                    event.preventDefault();
                     showPage(pageMap[link.id]);
                     if (pageMap[link.id] === 'library-page') {
                         renderAuthorList();
                         renderQuoteOfTheDay();
                     }
                 }
-            });
-            
+            }           
+            // Attach the handler to both click and touch events
+            document.addEventListener('click', handleNavigation);
+            document.addEventListener('touchstart', handleNavigation);
             mobileMenuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
 
             // --- THEME TOGGLE ---
@@ -1891,4 +1893,5 @@
     </script>
 </body>
 </html>
+
 
